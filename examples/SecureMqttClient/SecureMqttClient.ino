@@ -90,6 +90,7 @@ const char wifiPass[] = "YourWiFiPass";
 
 // MQTT details
 const char* broker = "broker.hivemq.com";
+int broker_port = 8883;
 
 const char* topicLed = "GsmClientTest/led";
 const char* topicInit = "GsmClientTest/init";
@@ -119,7 +120,7 @@ const char* topicLedStatus = "GsmClientTest/ledStatus";
 #else
 TinyGsm modem(SerialAT);
 #endif
-TinyGsmClient client(modem);
+TinyGsmClientSecure client(modem);
 PubSubClient mqtt(client);
 
 #define LED_PIN 13
@@ -191,6 +192,16 @@ void setup() {
   SerialMon.print("Modem Info: ");
   SerialMon.println(modemInfo);
 
+#ifdef TINY_GSM_MODEM_SIM800  
+  // for Azure TLS 1.2 and the SIM800L
+  modem.sendAT("+SSLOPT=1,1");
+  int rsp = modem.waitResponse();
+  if (rsp != 1)
+  {
+    Serial.printf("modem +SSLOPT=1,1 failed");
+  }   
+#endif  
+
 #if TINY_GSM_USE_GPRS
   // Unlock your SIM card with a PIN if needed
   if ( GSM_PIN && modem.getSimStatus() != 3 ) {
@@ -243,7 +254,7 @@ void setup() {
 #endif
 
   // MQTT Broker setup
-  mqtt.setServer(broker, 1883);
+  mqtt.setServer(broker, broker_port);
   mqtt.setCallback(mqttCallback);
 }
 
